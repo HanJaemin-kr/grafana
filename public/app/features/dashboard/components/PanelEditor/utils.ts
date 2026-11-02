@@ -1,23 +1,6 @@
 import { omit } from 'lodash';
 
-import {
-  type FieldConfigPropertyItem,
-  type FieldConfigSource,
-  type PanelPlugin,
-  standardEditorsRegistry,
-} from '@grafana/data';
-import { getVarMappingKind, type VarMappingKind } from '@grafana/data/internal';
-
-/**
- * The kind of expression the panel editor lets a property take, or `undefined` for none. A slider
- * keeps its slider, since a text input in its place would lose the slider for every value.
- */
-export function getVarMappingEditingKind(
-  item: Pick<FieldConfigPropertyItem, 'id' | 'process' | 'editor'>
-): VarMappingKind | undefined {
-  const kind = getVarMappingKind(item);
-  return kind === 'number' && item.editor === standardEditorsRegistry.getIfExists('slider')?.editor ? undefined : kind;
-}
+import { type FieldConfigSource, type PanelPlugin } from '@grafana/data';
 
 /**
  * Sets or clears `defaults.varMappings[id]`. Unlike `updateDefaultFieldConfigValue`, `id` is the
