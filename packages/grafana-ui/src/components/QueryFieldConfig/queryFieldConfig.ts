@@ -1,10 +1,11 @@
 import { Prec } from '@codemirror/state';
 import { EditorView, keymap, placeholder as placeholderExtension } from '@codemirror/view';
+import { type BasicSetupOptions } from '@uiw/react-codemirror';
 
 import { type GrafanaTheme2 } from '@grafana/data';
 
 import { getFocusStyles } from '../../themes/mixins';
-import { type CodeMirrorBasicSetup, type CodeMirrorEditorTheme, type CodeMirrorExtension } from '../CodeMirror/types';
+import { type CodeMirrorExtension } from '../CodeMirror/types';
 
 export interface QueryFieldConfigOptions {
   /**
@@ -25,8 +26,8 @@ export interface QueryFieldConfigOptions {
 }
 
 export interface QueryFieldConfig {
-  theme: CodeMirrorEditorTheme;
-  basicSetup: CodeMirrorBasicSetup;
+  theme: CodeMirrorExtension;
+  basicSetup: boolean | BasicSetupOptions;
   extensions: CodeMirrorExtension[];
 }
 
@@ -49,7 +50,7 @@ const QUERY_FIELD_BASIC_SETUP = {
   drawSelection: false,
 } as const;
 
-function createQueryFieldTheme(theme: GrafanaTheme2): CodeMirrorEditorTheme {
+function createQueryFieldTheme(theme: GrafanaTheme2): CodeMirrorExtension {
   return EditorView.theme(
     {
       // The editor root carries the standard input chrome (background, border,

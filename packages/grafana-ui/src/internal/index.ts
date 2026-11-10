@@ -123,3 +123,7 @@ export { getSourceFrameIndex } from '../components/Table/TableNG/transformations
 export { getInternalRadius, getExternalRadius } from '../themes/mixins';
 export { BrandingContext, useBranding, type BrandingContextValue } from '../components/Branding/BrandingContext';
 export { DRAWER_INSIDE_ATTRIBUTE } from '../components/Drawer/Drawer';
+
+// Core-only: lets Grafana core build CodeMirror editors that accept raw extensions.
+export { useCodeMirrorSetup, type CodeMirrorSetup } from '../components/CodeMirror/useCodeMirrorSetup';
+export type { CodeMirrorEditorSetupProps, CodeMirrorExtension } from '../components/CodeMirror/types';

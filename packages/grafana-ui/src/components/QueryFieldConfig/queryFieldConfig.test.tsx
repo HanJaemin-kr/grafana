@@ -1,9 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import CodeMirror from '@uiw/react-codemirror';
 
 import { createTheme } from '@grafana/data';
-
-import { CodeEditor } from '../CodeMirror/CodeEditor';
 
 import { getQueryFieldConfig, type QueryFieldConfigOptions } from './queryFieldConfig';
 
@@ -13,7 +12,7 @@ describe('getQueryFieldConfig', () => {
   function renderField(options: QueryFieldConfigOptions = {}, value = '') {
     const onChange = jest.fn();
     const config = getQueryFieldConfig(theme, options);
-    render(<CodeEditor value={value} onChange={onChange} height="auto" {...config} />);
+    render(<CodeMirror value={value} onChange={onChange} height="auto" {...config} />);
     return { onChange };
   }
 

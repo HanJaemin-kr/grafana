@@ -1,12 +1,12 @@
 import { insertNewlineContinueMarkup, insertNewlineContinueMarkupCommand } from '@codemirror/lang-markdown';
 import { syntaxTree } from '@codemirror/language';
 import { Prec, type Extension } from '@codemirror/state';
-import { keymap, placeholder as placeholderExtension, type KeyBinding, type EditorView } from '@codemirror/view';
+import { keymap, type KeyBinding, type EditorView } from '@codemirror/view';
 import { useMemo, useRef, useState } from 'react';
 
 import { t } from '@grafana/i18n';
 import { useTheme2 } from '@grafana/ui';
-import { CodeMirrorEditor } from '@grafana/ui/unstable';
+import { CoreCodeMirrorEditor } from 'app/core/components/CodeMirror/CoreCodeMirrorEditor';
 import { type CellContentKind } from 'app/features/notebook/types';
 
 import { MarkdownFormatToolbar } from './MarkdownFormatToolbar';
@@ -70,8 +70,6 @@ export function MarkdownCellEditor({
     setText(contentText);
     lastEmittedText.current = contentText;
   }
-
-  const placeholderExt = useMemo(() => (placeholder ? [placeholderExtension(placeholder)] : []), [placeholder]);
 
   const onSubmitRef = useRef(onSubmit);
   onSubmitRef.current = onSubmit;
@@ -169,7 +167,7 @@ export function MarkdownCellEditor({
 
   return (
     <div ref={editorContainerRef}>
-      <CodeMirrorEditor
+      <CoreCodeMirrorEditor
         value={text}
         height="auto"
         lineWrapping
@@ -177,15 +175,9 @@ export function MarkdownCellEditor({
         // Tab leaves the cell instead of indenting. CodeMirror binds Tab to indent by default,
         // which holds the keyboard inside the editor with no way out.
         indentWithTab={false}
+        placeholder={placeholder}
         theme={livePreview.theme}
-        extensions={[
-          livePreview.extensions,
-          scrollMargin,
-          ...placeholderExt,
-          ...enterExt,
-          ...navigateExt,
-          ...(focusExtension ?? []),
-        ]}
+        extensions={[livePreview.extensions, scrollMargin, ...enterExt, ...navigateExt, ...(focusExtension ?? [])]}
         aria-label={t('notebook.cell.markdown.aria-label-editor', 'Markdown')}
         onChange={(value) => {
           setText(value);

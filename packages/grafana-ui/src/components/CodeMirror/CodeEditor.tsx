@@ -1,176 +1,56 @@
-import { acceptCompletion, autocompletion, startCompletion } from '@codemirror/autocomplete';
-import { EditorState, Prec } from '@codemirror/state';
-import { EditorView, keymap } from '@codemirror/view';
-import CodeMirror, { type ReactCodeMirrorRef } from '@uiw/react-codemirror';
-import { memo, useMemo, useRef } from 'react';
+import CodeMirror from '@uiw/react-codemirror';
+import { memo } from 'react';
 
-import { t } from '@grafana/i18n';
+import { type CodeMirrorEditorProps, type CodeMirrorEditorSetupProps } from './types';
+import { isThemeOverrides, useCodeMirrorSetup } from './useCodeMirrorSetup';
 
-import { useTheme2 } from '../../themes/ThemeContext';
-import { Alert } from '../Alert/Alert';
+type PublicSetupProps = Omit<CodeMirrorEditorProps, 'loadingFallback'>;
 
-import { createCodeEditorTheme } from './theme';
-import {
-  type CodeMirrorCompletionMode,
-  type CodeMirrorCompletionSource,
-  type CodeMirrorEditorProps,
-  type CodeMirrorExtension,
-} from './types';
-import { useLanguageExtension } from './useLanguageExtension';
-import { useShallowStable, useStableCallback } from './useStableProps';
+/** Requires every key to be listed, so a public prop can't be skipped when copying. */
+type EveryProp<T> = { [K in keyof Required<T>]: T[K] };
 
-const getCompletionExtensions = (
-  sources: readonly CodeMirrorCompletionSource[] | undefined,
-  mode: CodeMirrorCompletionMode,
-  completeOnSpace: boolean
-): CodeMirrorExtension[] => {
-  if (!sources || sources.length === 0) {
-    return [];
-  }
+/**
+ * Copies the public props one by one. Plugins bundle their own copy of
+ * CodeMirror, and extensions built with it crash or are ignored in Grafana's
+ * editor, so nothing outside this list reaches CodeMirror, even when a caller
+ * passes it with a type cast or from plain JavaScript. `theme` is kept only
+ * when it is plain style overrides.
+ */
+function toSetupProps(props: CodeMirrorEditorProps): EveryProp<PublicSetupProps> {
+  return {
+    value: props.value,
+    language: props.language,
+    sqlDialect: props.sqlDialect,
+    height: props.height,
+    onChange: props.onChange,
+    onBlur: props.onBlur,
+    onSave: props.onSave,
+    'aria-label': props['aria-label'],
+    'aria-labelledby': props['aria-labelledby'],
+    completionSources: props.completionSources,
+    completionMode: props.completionMode,
+    completeOnSpace: props.completeOnSpace,
+    variableSuggestions: props.variableSuggestions,
+    variableCompletionOptions: props.variableCompletionOptions,
+    signatureHelp: props.signatureHelp,
+    placeholder: props.placeholder,
+    basicSetup: props.basicSetup,
+    theme: isThemeOverrides(props.theme) ? props.theme : undefined,
+    indentWithTab: props.indentWithTab,
+    readOnly: props.readOnly,
+    lineWrapping: props.lineWrapping,
+  };
+}
 
-  const spaceKeymap = completeOnSpace ? [autocompleteSpaceKeymap] : [];
+/** Implementation behind the public `CodeMirrorEditor`. Accepts no raw extensions. */
+export const CodeEditor = memo(function CodeEditor(props: CodeMirrorEditorProps) {
+  const setupProps: CodeMirrorEditorSetupProps = toSetupProps(props);
+  const { ref, props: editorProps, languageAlert } = useCodeMirrorSetup(setupProps);
 
-  if (mode === 'override') {
-    return [autocompletion({ override: [...sources] }), ...spaceKeymap];
-  }
-
-  // Merge: enable autocompletion and contribute the sources via language data
-  // so they're combined with whatever the active language registers.
-  return [
-    autocompletion(),
-    ...spaceKeymap,
-    ...sources.map((source) => EditorState.languageData.of(() => [{ autocomplete: source }])),
-  ];
-};
-
-const getAccessibilityExtensions = (
-  ariaLabel: string | undefined,
-  ariaLabelledby: string | undefined
-): CodeMirrorExtension[] => {
-  if (!ariaLabel && !ariaLabelledby) {
-    return [];
-  }
-
-  return [
-    EditorView.contentAttributes.of({
-      ...(ariaLabel ? { 'aria-label': ariaLabel } : {}),
-      ...(ariaLabelledby ? { 'aria-labelledby': ariaLabelledby } : {}),
-    }),
-  ];
-};
-
-// Bind Tab to accept completions before the default indent behavior
-const autocompleteTabKeymap = Prec.highest(
-  keymap.of([
-    {
-      key: 'Tab',
-      run: acceptCompletion,
-    },
-  ])
-);
-
-const autocompleteSpaceKeymap = Prec.highest(
-  keymap.of([
-    {
-      key: 'Space',
-      run: (view) => {
-        if (view.state.readOnly) {
-          return false;
-        }
-
-        view.dispatch(view.state.replaceSelection(' '));
-        startCompletion(view);
-        return true;
-      },
-    },
-  ])
-);
-
-export const CodeEditor = memo(function CodeEditor({
-  value,
-  language,
-  sqlDialect,
-  height = '200px',
-  onChange,
-  onBlur,
-  onSave,
-  'aria-label': ariaLabel,
-  'aria-labelledby': ariaLabelledby,
-  completionSources,
-  completionMode = 'merge',
-  completeOnSpace = false,
-  extensions: additionalExtensionsProp,
-  theme: themeOverride,
-  basicSetup: basicSetupProp,
-  indentWithTab = true,
-  readOnly = false,
-  lineWrapping = false,
-}: CodeMirrorEditorProps) {
-  const theme = useTheme2();
-  const { extension: languageExtension, error: languageExtensionError } = useLanguageExtension(language, sqlDialect);
-  const editorTheme = useMemo(() => createCodeEditorTheme(theme), [theme]);
-
-  // A new identity on any of these reconfigures the whole editor — see useStableProps.
-  const additionalExtensions = useShallowStable(additionalExtensionsProp);
-  const sources = useShallowStable(completionSources);
-  const basicSetup = useShallowStable(basicSetupProp);
-  const editorRef = useRef<ReactCodeMirrorRef>(null);
-  const handleChange = useStableCallback(onChange);
-  const handleBlur = useStableCallback(() => {
-    const editorView = editorRef.current?.view;
-    if (editorView) {
-      onBlur?.(editorView.state.doc.toString());
-    }
-  });
-  const handleSave = useStableCallback((view: EditorView) => {
-    onSave?.(view.state.doc.toString());
-    return true;
-  });
-
-  const extensions = useMemo(
-    () => [
-      autocompleteTabKeymap,
-      keymap.of([{ key: 'Mod-s', run: handleSave, preventDefault: true }]),
-      ...getAccessibilityExtensions(ariaLabel, ariaLabelledby),
-      ...(languageExtension ? [languageExtension] : []),
-      ...getCompletionExtensions(sources, completionMode, completeOnSpace),
-      ...(lineWrapping ? [EditorView.lineWrapping] : []),
-      ...(additionalExtensions ?? []),
-    ],
-    [
-      handleSave,
-      ariaLabel,
-      ariaLabelledby,
-      languageExtension,
-      sources,
-      completionMode,
-      completeOnSpace,
-      lineWrapping,
-      additionalExtensions,
-    ]
-  );
   return (
     <>
-      {languageExtensionError && (
-        <Alert title={t('grafana-ui.code-mirror.language-load-failed', 'Syntax highlighting failed to load')}>
-          {t(
-            'grafana-ui.code-mirror.language-load-failed-description',
-            'The editor will continue without language-specific features.'
-          )}
-        </Alert>
-      )}
-      <CodeMirror
-        ref={editorRef}
-        theme={themeOverride ?? editorTheme}
-        value={value}
-        height={height}
-        extensions={extensions}
-        onChange={handleChange}
-        onBlur={onBlur ? handleBlur : undefined}
-        basicSetup={basicSetup}
-        indentWithTab={indentWithTab}
-        readOnly={readOnly}
-      />
+      {languageAlert}
+      <CodeMirror ref={ref} {...editorProps} />
     </>
   );
 });
