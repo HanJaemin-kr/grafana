@@ -2,7 +2,7 @@ import { lazy, type ReactNode, Suspense } from 'react';
 
 import { t } from '@grafana/i18n';
 import { ErrorBoundaryAlert, LoadingPlaceholder } from '@grafana/ui';
-import { type CodeMirrorEditorSetupProps } from '@grafana/ui/internal';
+import { type CodeMirrorEditorSetupProps, loadCodeMirrorSetup } from '@grafana/ui/internal';
 
 export interface CoreCodeMirrorEditorProps extends CodeMirrorEditorSetupProps {
   /** Rendered while the editor bundle loads. */
@@ -10,9 +10,10 @@ export interface CoreCodeMirrorEditorProps extends CodeMirrorEditorSetupProps {
 }
 
 const Editor = lazy(() =>
-  import(/* webpackChunkName: "core-codemirror-editor" */ './CoreCodeMirrorEditorImplementation').then((module) => ({
-    default: module.CoreCodeMirrorEditorImplementation,
-  }))
+  Promise.all([
+    loadCodeMirrorSetup(),
+    import(/* webpackChunkName: "core-codemirror-editor" */ './CoreCodeMirrorEditorImplementation'),
+  ]).then(([useCodeMirrorSetup, module]) => ({ default: module.createCoreCodeMirrorEditor(useCodeMirrorSetup) }))
 );
 
 /**

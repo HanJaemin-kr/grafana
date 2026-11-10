@@ -36,21 +36,18 @@ export interface CodeMirrorBasicSetupOptions {
   allowMultipleSelections?: boolean;
   /** Re-indents a line while typing, where the language supports it. */
   indentOnInput?: boolean;
-  /** Syntax highlighting for the active language. */
-  syntaxHighlighting?: boolean;
   /** Highlights the bracket that matches the one next to the cursor. */
   bracketMatching?: boolean;
   /** Inserts closing brackets and quotes automatically. */
   closeBrackets?: boolean;
   /**
-   * Language-default autocompletion. `completionSources` and `variableSuggestions`
-   * still enable completion when this is off.
+   * Autocompletion. Passing `completionSources` or `variableSuggestions` turns
+   * it back on, and in the default merge mode that includes the language's own
+   * completions.
    */
   autocompletion?: boolean;
   /** Alt-drag rectangular selection. */
   rectangularSelection?: boolean;
-  /** Crosshair cursor while Alt is held. */
-  crosshairCursor?: boolean;
   /** Highlights the line with the cursor. */
   highlightActiveLine?: boolean;
   /** Highlights other occurrences of the selected text. */
@@ -226,6 +223,8 @@ export interface CodeMirrorEditorProps {
   'aria-labelledby'?: string;
   /**
    * Autocomplete sources. When provided, enables autocompletion with the given sources.
+   * Define the sources outside the component or memoize them: a new source
+   * reconfigures the editor.
    */
   completionSources?: readonly CodeMirrorCompletionSource[];
   /**
@@ -249,11 +248,15 @@ export interface CodeMirrorEditorProps {
   /**
    * Grafana variables offered by autocompletion. Typing `$` opens the list, and
    * accepting an option inserts a complete reference such as `${name}`.
+   * Memoize the list: a list holding different suggestion objects reconfigures
+   * the editor.
    */
-  variableSuggestions?: VariableSuggestion[];
+  variableSuggestions?: readonly VariableSuggestion[];
   /**
    * Customizes how `variableSuggestions` open, what they insert, and how they
-   * are listed.
+   * are listed. Can be passed inline: the editor calls the latest
+   * `getInsertText` and `toDisplay`, and only reconfigures when `separators`
+   * change.
    */
   variableCompletionOptions?: VariableCompletionOptions;
   /**

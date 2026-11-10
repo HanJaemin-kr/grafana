@@ -45,7 +45,6 @@ export function TextNGCodeView({
       indentOnInput: false,
       allowMultipleSelections: false,
       rectangularSelection: false,
-      crosshairCursor: false,
       dropCursor: false,
     }),
     [showLineNumbers]

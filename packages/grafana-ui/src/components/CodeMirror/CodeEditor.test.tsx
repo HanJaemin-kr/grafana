@@ -163,6 +163,34 @@ describe('CodeMirror CodeEditor', () => {
     expect(result?.options.map((option) => option.label)).toEqual(['region']);
   });
 
+  it('keeps the editor configuration for inline variable options and lists options with the latest toDisplay', async () => {
+    const suggestions = [{ value: 'region', label: 'Region', origin: VariableOrigin.Template }];
+    const { rerender } = render(
+      <CodeEditor
+        value="$"
+        onChange={jest.fn()}
+        variableSuggestions={suggestions}
+        variableCompletionOptions={{ toDisplay: (suggestion) => ({ label: `first ${suggestion.value}` }) }}
+      />
+    );
+    const initialExtensions = capturedProps?.extensions;
+
+    rerender(
+      <CodeEditor
+        value="$"
+        onChange={jest.fn()}
+        variableSuggestions={suggestions}
+        variableCompletionOptions={{ toDisplay: (suggestion) => ({ label: `second ${suggestion.value}` }) }}
+      />
+    );
+
+    // Compared as a boolean: Jest can't print the circular extension arrays in a failure message.
+    expect(capturedProps?.extensions === initialExtensions).toBe(true);
+    const [variableSource] = getAutocompleteSources();
+    const result = await variableSource(new CompletionContext(EditorState.create({ doc: '$' }), 1, false));
+    expect(result?.options.map((option) => option.label)).toEqual(['second region']);
+  });
+
   it('adds no variable source when there are no variable suggestions', () => {
     render(<CodeEditor value="$" onChange={jest.fn()} variableSuggestions={[]} />);
 

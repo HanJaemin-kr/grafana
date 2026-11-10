@@ -64,7 +64,7 @@ export function applyVariableReference(text: string): CompletionApply {
  * suggestions are filtered here instead and the result sets `filter: false`.
  */
 export function createVariableCompletionSource(
-  suggestions: VariableSuggestion[],
+  suggestions: readonly VariableSuggestion[],
   options: VariableCompletionOptions = {}
 ): (context: CodeMirrorCompletionContext) => CodeMirrorCompletionResult | null {
   const {

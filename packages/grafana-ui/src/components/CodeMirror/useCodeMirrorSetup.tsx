@@ -4,6 +4,7 @@ import { EditorView, keymap, placeholder as placeholderExtension } from '@codemi
 import { type ReactCodeMirrorProps, type ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { type ReactNode, type RefObject, useMemo, useRef } from 'react';
 
+import { type VariableSuggestion } from '@grafana/data';
 import { t } from '@grafana/i18n';
 
 import { useTheme2 } from '../../themes/ThemeContext';
@@ -17,6 +18,7 @@ import {
   type CodeMirrorEditorSetupProps,
   type CodeMirrorExtension,
   type CodeMirrorThemeOverrides,
+  type VariableCompletionOptions,
 } from './types';
 import { useLanguageExtension } from './useLanguageExtension';
 import { useShallowStable, useStableCallback } from './useStableProps';
@@ -107,6 +109,40 @@ const autocompleteSpaceKeymap = Prec.highest(
 );
 
 /**
+ * Callers often pass these options inline. The source calls `getInsertText` and
+ * `toDisplay` while completing, so it can always call the latest ones; only new
+ * `separators` rebuild it (and reconfigure the editor).
+ */
+function useStableVariableCompletionOptions(
+  options: VariableCompletionOptions | undefined
+): VariableCompletionOptions | undefined {
+  const separators = useShallowStable(options?.separators);
+  const getInsertTextProp = options?.getInsertText;
+  const toDisplayProp = options?.toDisplay;
+  const getInsertText = useStableCallback((suggestion: VariableSuggestion) =>
+    getInsertTextProp ? getInsertTextProp(suggestion) : ''
+  );
+  const toDisplay = useStableCallback((suggestion: VariableSuggestion) =>
+    toDisplayProp ? toDisplayProp(suggestion) : { label: suggestion.label }
+  );
+  const hasOptions = options !== undefined;
+  const hasGetInsertText = getInsertTextProp !== undefined;
+  const hasToDisplay = toDisplayProp !== undefined;
+
+  return useMemo(
+    () =>
+      hasOptions
+        ? {
+            separators,
+            getInsertText: hasGetInsertText ? getInsertText : undefined,
+            toDisplay: hasToDisplay ? toDisplay : undefined,
+          }
+        : undefined,
+    [hasOptions, separators, hasGetInsertText, getInsertText, hasToDisplay, toDisplay]
+  );
+}
+
+/**
  * Builds the props for `@uiw/react-codemirror` with Grafana's theme, language
  * loading, completion and keyboard behavior. Shared by `CodeMirrorEditor` and the
  * core-only editor so both stay identical apart from raw extensions.
@@ -150,7 +186,7 @@ export function useCodeMirrorSetup({
   const additionalExtensions = useShallowStable(additionalExtensionsProp);
   const sources = useShallowStable(completionSources);
   const variableSuggestions = useShallowStable(variableSuggestionsProp);
-  const variableCompletionOptions = useShallowStable(variableCompletionOptionsProp);
+  const variableCompletionOptions = useStableVariableCompletionOptions(variableCompletionOptionsProp);
   const basicSetup = useShallowStable(basicSetupProp);
 
   const allSources = useMemo(
