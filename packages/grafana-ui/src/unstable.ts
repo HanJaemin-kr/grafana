@@ -35,8 +35,6 @@ export type {
   VariableCompletionDisplay,
   VariableCompletionOptions,
 } from './components/CodeMirror/types';
-export { getQueryFieldConfig } from './components/QueryFieldConfig/queryFieldConfig';
-export type { QueryFieldConfig, QueryFieldConfigOptions } from './components/QueryFieldConfig/queryFieldConfig';
 export { TableNG } from './components/Table/TableNG/TableNG';
 export { RangeSliderG14 } from './components/Slider/RangeSliderG14';
 export type { RangeSliderG14Props } from './components/Slider/types';

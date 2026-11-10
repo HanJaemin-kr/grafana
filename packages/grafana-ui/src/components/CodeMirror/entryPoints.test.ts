@@ -1,7 +1,7 @@
-// Plugins load the complete @grafana/ui namespace, and eagerly loaded core code
-// imports @grafana/ui/internal, so neither may load CodeMirror before an editor
-// renders. Jest doesn't tree-shake, so a static import anywhere in either entry
-// point's module graph shows up here.
+// Plugins load the complete @grafana/ui and @grafana/ui/unstable namespaces, and
+// eagerly loaded core code imports @grafana/ui/internal, so none of them may load
+// CodeMirror before an editor renders. Jest doesn't tree-shake, so a static import
+// anywhere in an entry point's module graph shows up here.
 const CODEMIRROR_MODULES = ['@codemirror/state', '@codemirror/view'];
 
 function trackCodeMirrorLoads(loaded: string[]) {
@@ -21,6 +21,18 @@ describe('CodeMirror loading from package entry points', () => {
       trackCodeMirrorLoads(loaded);
       const ui = await import('../../index');
       expect(ui).toHaveProperty('QueryInput');
+    });
+
+    expect(loaded).toEqual([]);
+  });
+
+  it('exports CodeMirrorEditor from @grafana/ui/unstable without loading CodeMirror', async () => {
+    const loaded: string[] = [];
+
+    await jest.isolateModulesAsync(async () => {
+      trackCodeMirrorLoads(loaded);
+      const unstable = await import('../../unstable');
+      expect(unstable).toHaveProperty('CodeMirrorEditor');
     });
 
     expect(loaded).toEqual([]);
